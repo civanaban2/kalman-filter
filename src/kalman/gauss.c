@@ -4,7 +4,7 @@
 
 void gauss_newton(kalman_t *kalman, measurement_t *measurements)
 {
-	const int max_iter = 10;
+	const int max_iter = 100;
 	const double tol = 1e-6;
 
 	// Compute initial guess as average of sensor positions

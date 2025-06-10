@@ -2,10 +2,10 @@
 
 void	kalman_filter(kalman_t *kalman, const char *data)
 {
-	static int	measurement_count = 0;
+	static int				measurement_count = 0;
     static measurement_t	last_data;
     static measurement_t	first_three[3];
-    measurement_t	new_data;
+    measurement_t			new_data;
 
     if (measurement_count < 3)
     {

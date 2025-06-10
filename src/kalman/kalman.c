@@ -14,13 +14,12 @@ void	kalman_filter(kalman_t *kalman, const char *data)
         
         if (measurement_count == 3)
         {
-			printf("anann");
             gauss_newton(kalman, first_three);
 			printf("Initial position: x = %.2f, y = %.2f\n", kalman->x[0], kalman->x[1]);
 			last_data = first_three[2];
         }
     }
-    else  // measurement_count >= 3
+    else
     {
         parse_data(data, &new_data);
         ekf(kalman, new_data, last_data);

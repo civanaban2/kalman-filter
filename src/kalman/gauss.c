@@ -27,11 +27,12 @@ void gauss_newton(kalman_t *kalman, measurement_t *measurements)
 			if (r2 < 1e-8) r2 = 1e-8; // avoid division by zero
 
 			double predicted_bearing = atan2(dy, dx);
-			double angle_diff = predicted_bearing - measurements[i].bearing;
+			double angle_diff = predicted_bearing - measurements[i].bearing * M_PI / 180.0; // Convert bearing to radians
 
-			// Ensure bearing differences are in radians
-			while (angle_diff > M_PI) angle_diff -= 2 * M_PI;
-			while (angle_diff < -M_PI) angle_diff += 2 * M_PI;
+			// Normalize angle_diff to [-pi, pi]
+			angle_diff = fmod(angle_diff + M_PI, 2 * M_PI);
+			if (angle_diff < 0) angle_diff += 2 * M_PI;
+			angle_diff -= M_PI;
 
 			fx[i] = angle_diff;
 
@@ -75,5 +76,4 @@ void gauss_newton(kalman_t *kalman, measurement_t *measurements)
 	kalman->x[1] = y;
 	kalman->x[2] = 0.0;
 	kalman->x[3] = 0.0;
-	printf("Gauss-Newton result: x = %.2f, y = %.2f\n", x, y);
 }

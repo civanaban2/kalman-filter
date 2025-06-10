@@ -9,14 +9,14 @@
 #include <stdio.h>
 #include <string.h>
 
-typedef struct sensor
+typedef struct	sensor
 {
 	int		id;
 	int		x;
 	int		y;
 }	sensor_t;
 
-typedef struct ship
+typedef struct	ship
 {
 	double		x;
 	double		y;
@@ -25,17 +25,17 @@ typedef struct ship
 	double		w;
 }	ship_t;
 
-typedef struct measurement
+typedef struct	measurement
 {
 	double	timestamp;
 	double	bearing;
 	int		sensor_id;
 }	measurement_t;
 
-typedef struct simulation
+typedef struct	simulation
 {
-	sensor_t		*sensors;
-	measurement_t	*measurements;
+	sensor_t		sensors[3];
+	measurement_t	measurements[100];
 	ship_t			ship;
 	int				num_measurements;
 	double			timestamp;
@@ -44,9 +44,9 @@ typedef struct simulation
 
 void	initialization(simulation_t *sim);
 void	record_measurements(simulation_t *sim);
-void	write_measurements(simulation_t *sim);
 void	sensor_control(simulation_t *sim);
 void	update_simulation(simulation_t *sim, double step);
-double randn(int id);
+void	write_measurements(simulation_t *sim);
+double	randn(int id);
 
 #endif

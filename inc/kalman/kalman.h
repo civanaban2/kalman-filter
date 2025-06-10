@@ -15,7 +15,6 @@ typedef struct kalman_filter {
 	double	Q[4][4];
 	double	H[1][4];
 	double	R[1][1];
-	double	z[2];
 	double	y;
 	double	S;
 	double	K[4][1];
@@ -28,8 +27,6 @@ typedef struct measurement {
 	double	bearing;
 }	measurement_t;
 
-
-
 // Main kalman functions
 void	kalman_filter(kalman_t *kalman, const char *data);
 void	kalman_initialization(kalman_t *kalman);
@@ -41,19 +38,10 @@ void	parse_data(const char *data, measurement_t *measurement);
 void	get_P_matrix(double P[4][4]);
 void	get_Q_matrix(double Q[4][4]);
 void	get_sensors(double sensors[3][2]);
+double **get_F_matrix(double dt);
 
 // Algorithm functions
 void	gauss_newton(kalman_t *kalman, measurement_t *measurements);
 void	ekf(kalman_t *kalman, measurement_t new_data, measurement_t last_data);
-
-// Matrix operations
-double	mat3x3_determinant(double a[3][3]);
-double	**mat4x4_multiply(double a[4][4], double b[4][4]);
-double	**mat4x4_add(double a[4][4], double b[4][4]);
-double	**mat4x4_subtract(double a[4][4], double b[4][4]);
-double	**mat4x4_transpose(double a[4][4]);
-double	mat4x4_determinant(double a[4][4]);
-double	**mat4x4_inverse(double a[4][4]);
-double **get_F_matrix(double dt);
 
 #endif

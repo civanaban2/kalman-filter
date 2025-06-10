@@ -5,12 +5,10 @@
 #include <math.h>
 
 // Matrix operation functions
-double	**mat4x4_multiply(double a[4][4], double b[4][4]);
-double	**mat4x4_add(double a[4][4], double b[4][4]);
-double	**mat4x4_subtract(double a[4][4], double b[4][4]);
-double	**mat4x4_transpose(double a[4][4]);
-double	mat4x4_determinant(double a[4][4]);
-double	**mat4x4_inverse(double a[4][4]);
-double	mat3x3_determinant(double a[3][3]);
+double	**mat_multiply(double **a, double **b, int rows_a, int cols_a, int cols_b);
+double	**mat_add(double **a, double **b, int rows, int cols);
+double	**mat_subtract(double **a, double **b, int rows, int cols);
+double	**mat_transpose(double **a, int rows, int cols);
+double	mat_determinant(double **a, int size);
 
 #endif

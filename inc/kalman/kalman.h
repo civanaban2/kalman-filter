@@ -60,5 +60,8 @@ void	get_H_matrix(gauss_newton_t *gn, kalman_t *kalman, measurement_t *measureme
 void	HtH_and_Htf(double HtH[2][2], double Htf[2], gauss_newton_t *gn);
 void	get_inv(gauss_newton_t *gn, double HtH[2][2]);
 void	ekf(kalman_t *kalman, measurement_t new_data, measurement_t last_data);
+void	ekf_predict(kalman_t *kalman, measurement_t new_data, measurement_t last_data);
+void	ekf_update(kalman_t *kalman, measurement_t new_data);
+void	logger_write(kalman_t *kalman);
 
 #endif

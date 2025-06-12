@@ -53,7 +53,7 @@ void	parse_data(const char *data, measurement_t *measurement);
 void	get_P_matrix(double P[4][4]);
 void	get_Q_matrix(double Q[4][4]);
 void	get_sensors(double sensors[3][2]);
-double	**get_F_matrix(double dt);
+void	get_F_matrix(double dt, kalman_t *kalman);
 void	gauss_newton(kalman_t *kalman, measurement_t *measurements);
 void	gauss_init(gauss_newton_t *gn);
 void	get_H_matrix(gauss_newton_t *gn, kalman_t *kalman, measurement_t *measurements);

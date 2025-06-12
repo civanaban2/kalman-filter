@@ -30,35 +30,35 @@ typedef struct measurement {
 typedef struct gauss_newton {
 	int		max_iter;
 	double	tol;
-	double	**z;
-	double	**H;
-	double	**H_transpose;
+	double	x;
+	double	y;
 	double	sx_sum;
 	double	sy_sum;
 	double	dx;
 	double	dy;
 	double	r2;
-	double	**HtH_inv;
-	double	H_det;
+	double	fx[3];
+	double	H[3][2];
 	double	predicted_bearing;
 	double	angle_diff;
+	double	inv[2][2];
+	double	det;
+	double	delta_x;
+	double	delta_y;
 }	gauss_newton_t;
 
-// Main kalman functions
 void	kalman_filter(kalman_t *kalman, const char *data);
 void	kalman_initialization(kalman_t *kalman);
-
-// Parser functions
 void	parse_data(const char *data, measurement_t *measurement);
-
-// Initialization functions
 void	get_P_matrix(double P[4][4]);
 void	get_Q_matrix(double Q[4][4]);
 void	get_sensors(double sensors[3][2]);
-double **get_F_matrix(double dt);
-
-// Algorithm functions
+double	**get_F_matrix(double dt);
 void	gauss_newton(kalman_t *kalman, measurement_t *measurements);
+void	gauss_init(gauss_newton_t *gn);
+void	get_H_matrix(gauss_newton_t *gn, kalman_t *kalman, measurement_t *measurements);
+void	HtH_and_Htf(double HtH[2][2], double Htf[2], gauss_newton_t *gn);
+void	get_inv(gauss_newton_t *gn, double HtH[2][2]);
 void	ekf(kalman_t *kalman, measurement_t new_data, measurement_t last_data);
 
 #endif

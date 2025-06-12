@@ -1,6 +1,6 @@
 #include "simulation.h"
 
-int main(void)
+int	main(void)
 {
 	simulation_t	sim;
 
@@ -11,5 +11,5 @@ int main(void)
 	free(sim.sensors);
 	free(sim.measurements);
 	printf("Simulation completed successfully.\n");
-	return 0;
+	return (0);
 }

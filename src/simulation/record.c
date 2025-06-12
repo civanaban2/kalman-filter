@@ -2,12 +2,14 @@
 
 void	record_measurements(simulation_t *sim)
 {
-	double	step = 0.0001;
+	double	step;
+
+	step = 0.0001;
 	while (1)
 	{
 		sensor_control(sim);
 		if (sim->num_measurements >= 100)
-			break;
+			break ;
 		update_simulation(sim, step);
 	}
 }

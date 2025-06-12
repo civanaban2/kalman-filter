@@ -99,12 +99,24 @@ report:
 		cd $(REPORT_DIR) && \
 		for tex_file in *.tex; do \
 			if [ -f "$$tex_file" ]; then \
-				echo "$(YELLOW)Compiling $$tex_file...$(NC)"; \
-				pdflatex $$tex_file; \
-				pdflatex $$tex_file; \
+				echo "$(YELLOW)Compiling $$tex_file (1st pass)...$(NC)"; \
+				pdflatex -interaction=nonstopmode $$tex_file > /dev/null 2>&1 || echo "$(RED)LaTeX pass 1 warning for $$tex_file$(NC)"; \
+				if [ -f "$${tex_file%.tex}.aux" ]; then \
+					echo "$(YELLOW)Processing bibliography...$(NC)"; \
+					bibtex "$${tex_file%.tex}" > /dev/null 2>&1 || echo "$(YELLOW)No bibliography or bibtex warnings$(NC)"; \
+				fi; \
+				echo "$(YELLOW)Compiling $$tex_file (2nd pass)...$(NC)"; \
+				pdflatex -interaction=nonstopmode $$tex_file > /dev/null 2>&1 || echo "$(RED)LaTeX pass 2 warning for $$tex_file$(NC)"; \
+				echo "$(YELLOW)Compiling $$tex_file (3rd pass)...$(NC)"; \
+				pdflatex -interaction=nonstopmode $$tex_file > /dev/null 2>&1 || echo "$(RED)LaTeX pass 3 warning for $$tex_file$(NC)"; \
+				if [ -f "$${tex_file%.tex}.pdf" ]; then \
+					echo "$(GREEN)✓ Successfully generated $${tex_file%.tex}.pdf$(NC)"; \
+				else \
+					echo "$(RED)✗ Failed to generate PDF for $$tex_file$(NC)"; \
+				fi; \
 			fi; \
 		done; \
-		echo "$(GREEN)✓ PDF reports generated successfully!$(NC)"; \
+		echo "$(GREEN)✓ PDF report generation completed!$(NC)"; \
 	else \
 		echo "$(RED)Error: $(REPORT_DIR) directory not found!$(NC)"; \
 	fi
@@ -121,7 +133,7 @@ start: $(BIN_DIR)/$(SIMULATION) $(BIN_DIR)/$(KALMAN)
 # Cleaning rules
 clean:
 	@rm -rf $(OBJ_DIR)
-	@rm -f $(REPORT_DIR)/*.aux $(REPORT_DIR)/*.log $(REPORT_DIR)/*.out $(REPORT_DIR)/*.toc $(REPORT_DIR)/*.fls $(REPORT_DIR)/*.fdb_latexmk $(REPORT_DIR)/*.synctex.gz 2>/dev/null || true
+	@rm -f $(REPORT_DIR)/*.aux $(REPORT_DIR)/*.log $(REPORT_DIR)/*.out $(REPORT_DIR)/*.toc $(REPORT_DIR)/*.bbl $(REPORT_DIR)/*.blg $(REPORT_DIR)/*.fls $(REPORT_DIR)/*.fdb_latexmk $(REPORT_DIR)/*.synctex.gz 2>/dev/null || true
 	@echo "$(GREEN)✓ Object files cleaned!$(NC)"
 
 fclean: clean
@@ -138,7 +150,7 @@ help:
 	@echo "  $(GREEN)make simulation$(NC) - Compile only simulation"
 	@echo "  $(GREEN)make kalman$(NC)     - Compile only kalman filter"
 	@echo "  $(GREEN)make analysis$(NC)   - Compile only analysis"
-	@echo "  $(GREEN)make report$(NC)     - Generate PDF from LaTeX files"
+	@echo "  $(GREEN)make report$(NC)     - Generate mathematical report PDF (with bibliography)"
 	@echo "  $(GREEN)make start$(NC)      - Run simulation and kalman in separate terminals"
 	@echo "  $(GREEN)make clean$(NC)      - Remove object files"
 	@echo "  $(GREEN)make fclean$(NC)     - Remove object files and binaries"

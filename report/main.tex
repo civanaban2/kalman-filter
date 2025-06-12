@@ -1,0 +1,454 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[turkish]{babel}  % Turkish language support
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{graphicx}
+\usepackage{geometry}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage[
+    colorlinks=true,
+    linkcolor=black,
+    citecolor=black,
+    filecolor=black,
+    urlcolor=blue,
+    hidelinks
+]{hyperref}
+\usepackage{float}
+\usepackage{subcaption}
+\usepackage{bm}
+\usepackage{cite}
+
+\geometry{margin=2.5cm}
+
+% Turkish theorem environments (using babel-turkish)
+\newtheorem{teorem}{Teorem}
+\newtheorem{lemma}{Lemma}
+\newtheorem{tanim}{Tan{\i}m}
+\newtheorem{onerme}{\"{O}nerme}
+
+% Code listing settings
+\lstset{
+    language=C,
+    basicstyle=\ttfamily\footnotesize,
+    keywordstyle=\color{blue},
+    commentstyle=\color{green!60!black},
+    stringstyle=\color{red},
+    numbers=left,
+    numberstyle=\tiny\color{gray},
+    frame=single,
+    breaklines=true,
+    captionpos=b,
+    title=\lstname
+}
+
+\title{
+    \LARGE \textbf{Pasif Sens\"{o}r ile Gemi Takibi} \\
+    \large MTH 407 - Otomatik Hedef \.{I}zleme Temelleri
+}
+
+\author{
+    \textbf{Civan Rumet Ar{\i}} \and \textbf{Yaren Sakarya} \\
+}
+
+\date{13 Haziran 2025}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+Bu rapor, \c{c}oklu sens\"{o}r kullanarak sadece a\c{c}{\i} \"{o}l\c{c}\"{u}mleri ile gemi takibi yapan bir Geni\c{s}letilmi\c{s} Kalman Filtresi (EKF) uygulamas{\i}n{\i} sunmaktad{\i}r. Proje, ger\c{c}ek zamanl{\i} sens\"{o}r sim\"{u}lasyonu, Do\u{g}rusal Olmayan En K\"{u}\c{c}\"{u}k Kareler (NLS) ile ba\c{s}lang{\i}\c{c} tahmin ve EKF ile konum takibi algoritmalar{\i}n{\i} i\c{c}ermektedir. Sistem C dilinde geli\c{s}tirilmi\c{s} olup, bearing \"{o}l\c{c}\"{u}mlerini dosyadan okuyarak ger\c{c}ek zamanl{\i} i\c{s}leme yapmaktad{\i}r. Gauss-Newton optimizasyonu ile ba\c{s}lang{\i}\c{c} konumu belirlenmekte, ard{\i}ndan EKF predict/update d\"{o}ng\"{u}s\"{u} ile hedefin hareketi takip edilmektedir. Sonu\c{c}lar MATLAB ile g\"{o}rselle\c{s}tirilmekte ve sistem performans{\i} analiz edilmektedir.
+
+\end{abstract}
+
+\tableofcontents
+\newpage
+
+\section{Giri\c{s}}
+
+\subsection{Proje Amac{\i}}
+Pasif sens\"{o}r sistemleri, hedefleri sadece al{\i}nan sinyaller \"{u}zerinden tespit etmeye olanak sa\u{g}layan \"{o}nemli bir teknoloji alan{\i}d{\i}r. Bu projede, \c{c}oklu bearing (a\c{c}{\i}) sens\"{o}r\"{u} kullanarak denizde hareket eden bir geminin konumunu ve h{\i}z{\i}n{\i} ger\c{c}ek zamanl{\i} olarak tahmin eden bir sistem geli\c{s}tirilmi\c{s}tir.
+
+\subsection{Problem Tan{\i}m{\i}}
+Sadece a\c{c}{\i} \"{o}l\c{c}\"{u}mleri ile konum belirleme, do\u{g}rusal olmayan bir tahmin problemidir. N sens\"{o}rden al{\i}nan $\theta_i(t)$ a\c{c}{\i} \"{o}l\c{c}\"{u}mleri kullan{\i}larak, hedefin durum vekt\"{o}r\"{u} $\mathbf{x}(t) = [x(t), y(t), v_x(t), v_y(t)]^T$ tahmin edilmelidir. Bu vekt\"{o}r hedefin konum ve h{\i}z bilgilerini i\c{c}ermektedir.
+
+\subsection{Yakla\c{s}{\i}m}
+\begin{itemize}
+    \item İlk üç ölçüm ile Gauss-Newton optimizasyonu kullanarak başlangıç konumu belirleme
+    \item Genişletilmiş Kalman Filtresi ile gerçek zamanlı konum ve hız takibi
+    \item C dilinde geliştirilen gerçek zamanlı simülasyon sistemi
+    \item MATLAB ile sonuç analizi ve görselleştirme
+\end{itemize}
+
+\section{Matematiksel Model}
+
+\subsection{Durum Vektörü ve Hareket Modeli}
+
+\subsubsection{Durum Uzayı Gösterimi}
+Hedefin durumu 4 boyutlu bir vektör ile tanımlanır:
+\begin{equation}
+\mathbf{x}(t) = [x(t), y(t), v_x(t), v_y(t)]^T
+\end{equation}
+
+\subsubsection{Sürekli Zaman Dinamik Modeli}
+Hedefin hareket dinamiği sabit hız modeli ile tanımlanır:
+\begin{equation}
+\frac{d\mathbf{x}(t)}{dt} = \mathbf{A}\mathbf{x}(t) + \mathbf{w}(t)
+\end{equation}
+
+burada sistem matrisi:
+\begin{equation}
+\mathbf{A} = \begin{bmatrix}
+0 & 0 & 1 & 0 \\
+0 & 0 & 0 & 1 \\
+0 & 0 & 0 & 0 \\
+0 & 0 & 0 & 0
+\end{bmatrix}
+\end{equation}
+
+\subsubsection{Ayrık Zaman Durum Geçiş Matrisi}
+Örnekleme periyodu $\Delta t$ için durum geçiş matrisi:
+\begin{equation}
+\mathbf{F} = e^{\mathbf{A}\Delta t} = \begin{bmatrix}
+1 & 0 & \Delta t & 0 \\
+0 & 1 & 0 & \Delta t \\
+0 & 0 & 1 & 0 \\
+0 & 0 & 0 & 1
+\end{bmatrix}
+\end{equation}
+
+\subsubsection{Süreç Gürültüsü Kovaryans Matrisi}
+Süreç gürültüsü kovaryans matrisi $\mathbf{Q}$, sabit hız modeli için:
+\begin{equation}
+\mathbf{Q} = \begin{bmatrix}
+\frac{\Delta t^3}{3} & 0 & \frac{\Delta t^2}{2} & 0 \\
+0 & \frac{\Delta t^3}{3} & 0 & \frac{\Delta t^2}{2} \\
+\frac{\Delta t^2}{2} & 0 & \Delta t & 0 \\
+0 & \frac{\Delta t^2}{2} & 0 & \Delta t
+\end{bmatrix} q
+\end{equation}
+burada $q$ süreç gürültüsü yoğunluğu parametresidir.
+
+\subsection{Doğrusal Olmayan Ölçüm Modeli}
+
+\subsubsection{Bearing Ölçüm Fonksiyonu}
+$i$-inci sensör için, $\mathbf{s}_i = [s_{x,i}, s_{y,i}]^T$ konumunda bulunan sensörün bearing ölçümü:
+\begin{equation}
+z_i = h_i(\mathbf{x}) + v_i = \arctan\left(\frac{y - s_{y,i}}{x - s_{x,i}}\right) + v_i
+\label{eq:bearing_measurement}
+\end{equation}
+
+burada $v_i \sim \mathcal{N}(0, \sigma_i^2)$ ölçüm gürültüsüdür.
+
+\subsubsection{Ölçüm Jacobian Matrisi}
+Ölçüm fonksiyonunun Jacobian matrisi:
+\begin{equation}
+\mathbf{H}_i = \frac{\partial h_i}{\partial \mathbf{x}} = \frac{1}{r_i^2} \begin{bmatrix}
+-(y - s_{y,i}) & (x - s_{x,i}) & 0 & 0
+\end{bmatrix}
+\end{equation}
+
+burada $r_i^2 = (x - s_{x,i})^2 + (y - s_{y,i})^2$ sensöre olan karesel mesafedir.
+
+\section{Doğrusal Olmayan En Küçük Kareler ile Başlangıç Tahmini}
+
+\subsection{Problem Formülasyonu}
+İlk üç bearing ölçümü $\{z_1, z_2, z_3\}$ kullanılarak başlangıç konumu $\mathbf{p}_0 = [x_0, y_0]^T$ belirlenir. Optimizasyon problemi:
+\begin{equation}
+\min_{\mathbf{p}} \sum_{i=1}^{3} \left[ z_i - \arctan\left(\frac{y - s_{y,i}}{x - s_{x,i}}\right) \right]^2
+\label{eq:nls_objective}
+\end{equation}
+
+\subsection{Gauss-Newton Algoritması}
+
+\subsubsection{Residual Vektörü}
+Residual fonksiyonu:
+\begin{equation}
+\mathbf{r}(\mathbf{p}) = \begin{bmatrix}
+z_1 - h_1(\mathbf{p}) \\
+z_2 - h_2(\mathbf{p}) \\
+z_3 - h_3(\mathbf{p})
+\end{bmatrix}
+\end{equation}
+
+\subsubsection{Jacobian Matrisi}
+Residual fonksiyonunun Jacobian matrisi:
+\begin{equation}
+\mathbf{J}(\mathbf{p}) = \begin{bmatrix}
+-\frac{\partial h_1}{\partial x} & -\frac{\partial h_1}{\partial y} \\
+-\frac{\partial h_2}{\partial x} & -\frac{\partial h_2}{\partial y} \\
+-\frac{\partial h_3}{\partial x} & -\frac{\partial h_3}{\partial y}
+\end{bmatrix}
+\end{equation}
+
+\subsubsection{Gauss-Newton Güncelleme Adımı}
+İteratif güncelleme kuralı:
+\begin{equation}
+\mathbf{p}^{(k+1)} = \mathbf{p}^{(k)} - \left(\mathbf{J}^T\mathbf{J}\right)^{-1} \mathbf{J}^T \mathbf{r}(\mathbf{p}^{(k)})
+\end{equation}
+
+Algoritma yakınsama kriteri $\|\Delta \mathbf{p}\| < \epsilon$ sağlanana kadar devam eder.
+
+\section{Genişletilmiş Kalman Filtresi Uygulaması}
+
+\subsection{Predict Adımı}
+Durum tahmini:
+\begin{align}
+\hat{\mathbf{x}}_{k|k-1} &= \mathbf{F}_k \hat{\mathbf{x}}_{k-1|k-1} \\
+\mathbf{P}_{k|k-1} &= \mathbf{F}_k \mathbf{P}_{k-1|k-1} \mathbf{F}_k^T + \mathbf{Q}_k
+\end{align}
+
+\subsection{Update Adımı}
+Her yeni bearing ölçümü için:
+\begin{align}
+\mathbf{y}_k &= z_k - h(\hat{\mathbf{x}}_{k|k-1}) \\
+\mathbf{S}_k &= \mathbf{H}_k \mathbf{P}_{k|k-1} \mathbf{H}_k^T + R_k \\
+\mathbf{K}_k &= \mathbf{P}_{k|k-1} \mathbf{H}_k^T \mathbf{S}_k^{-1} \\
+\hat{\mathbf{x}}_{k|k} &= \hat{\mathbf{x}}_{k|k-1} + \mathbf{K}_k \mathbf{y}_k \\
+\mathbf{P}_{k|k} &= (\mathbf{I} - \mathbf{K}_k \mathbf{H}_k) \mathbf{P}_{k|k-1}
+\end{align}
+
+\subsection{Zaman Mantığı}
+\begin{itemize}
+    \item İlk 3 ölçüm: Gauss-Newton ile başlangıç tahmini
+    \item 4. ölçümden itibaren: EKF predict/update döngüsü
+    \item Her yeni ölçüm için predict adımı ($\Delta t$ kullanılarak)
+    \item Ardından update adımı (bearing ölçümü ile)
+\end{itemize}
+
+\section{Simülasyon Kurulumu}
+
+\subsection{Gerçek Gemi Hareketi}
+\begin{itemize}
+    \item Toplam zaman adımı: $N = 50$
+    \item Örnekleme periyodu: $\Delta t = 1$ saniye
+    \item Hareket modeli: Sabit hız ile doğrusal hareket
+    \item Başlangıç konumu: $(x_0, y_0) = (100, 200)$ metre
+    \item Başlangıç hızı: $(v_x, v_y) = (2, 1)$ metre/saniye
+\end{itemize}
+
+\subsection{Sensör Düzeni}
+Üç adet bearing sensörü aşağıdaki konumlarda yerleştirilmiştir:
+\begin{align}
+\mathbf{s}_1 &= [0, 0]^T \\
+\mathbf{s}_2 &= [300, 0]^T \\
+\mathbf{s}_3 &= [150, 300]^T
+\end{align}
+
+\subsection{Radar Tarama Açıklaması}
+\begin{itemize}
+    \item Her sensör belirli aralıklarla bearing ölçümü yapar
+    \item Ölçüm gürültüsü: $\sigma = 0.1$ radyan
+    \item Gerçek zamanlı dosya işleme: 100ms polling periyodu
+    \item Yeni ölçüm geldiğinde EKF güncelleme
+\end{itemize}
+
+\section{Sonuçlar ve Görselleştirme}
+
+\subsection{Trajektori Grafiği}
+\begin{figure}[H]
+    \centering
+    % Placeholder for trajectory plot
+    \fbox{\parbox{12cm}{
+        \centering
+        \vspace{3cm}
+        Trajektori grafiği buraya eklenecek \\
+        (Gerçek yol vs Tahmin edilen yol)
+        \vspace{3cm}
+    }}
+    \caption{Gerçek ve tahmin edilen gemi trajektorisi}
+    \label{fig:trajectory}
+\end{figure}
+
+\subsection{RMSE Analizi}
+\begin{figure}[H]
+    \centering
+    % Placeholder for RMSE plot
+    \fbox{\parbox{12cm}{
+        \centering
+        \vspace{3cm}
+        RMSE grafiği buraya eklenecek \\
+        (Zaman vs Konum hatası)
+        \vspace{3cm}
+    }}
+    \caption{Kök ortalama kare hata (RMSE) analizi}
+    \label{fig:rmse}
+\end{figure}
+
+\subsection{Q Matrisi ve Sensör Geometrisinin Etkisi}
+
+\subsubsection{Süreç Gürültüsü Parametresi Analizi}
+\begin{table}[H]
+\centering
+\caption{Farklı Q değerleri için performans karşılaştırması}
+\begin{tabular}{|c|c|c|}
+\hline
+\textbf{q değeri} & \textbf{Ortalama RMSE (m)} & \textbf{Yakınsama Süresi (s)} \\
+\hline
+0.1 & - & - \\
+1.0 & - & - \\
+10.0 & - & - \\
+\hline
+\end{tabular}
+\label{tab:q_analysis}
+\end{table}
+
+\subsubsection{Sensör Geometrisi Etkisi}
+\begin{figure}[H]
+    \centering
+    % Placeholder for sensor geometry effect
+    \fbox{\parbox{12cm}{
+        \centering
+        \vspace{3cm}
+        Sensör geometrisi etkisi grafiği \\
+        buraya eklenecek
+        \vspace{3cm}
+    }}
+    \caption{Sensör düzeninin tahmin performansına etkisi}
+    \label{fig:sensor_geometry}
+\end{figure}
+
+\section{Tartışma}
+
+\subsection{Seyrek Ölçümler Altında Performans}
+\begin{itemize}
+    \item Bearing-only takip doğası gereği gözlemlenebilirlik sorunları yaşar
+    \item İlk üç ölçüm kritik öneme sahiptir - triangulation için minimum gereksinim
+    \item Sensör geometrisi performansı önemli ölçüde etkiler
+    \item Gauss-Newton başlangıç tahmini EKF yakınsaması için kritiktir
+\end{itemize}
+
+\subsection{Radar Periyot Duyarlılığı}
+\begin{itemize}
+    \item Çok sık ölçüm: İşlem yükünü artırır, marjinal performans iyileşmesi
+    \item Çok seyrek ölçüm: Tahmin belirsizliğini artırır, hedef kaybı riski
+    \item Optimal ölçüm periyodu hedef hızı ve sistem gereksinimlerine bağlıdır
+    \item Gerçek zamanlı işleme kabiliyeti sistem tasarımında önemlidir
+\end{itemize}
+
+\subsection{Algoritma Kararlılığı}
+\begin{itemize}
+    \item EKF doğrusallaştırma hatalarına duyarlıdır
+    \item Jacobian matrisi singularite yakınında sayısal sorunlar yaşanabilir
+    \item Kovaryans matrisi pozitif tanımlılığı korunmalıdır
+    \item Ölçüm gürültüsü parametreleri sistem performansını önemli ölçüde etkiler
+\end{itemize}
+
+\section{Sonuç}
+
+\subsection{Proje Başarıları}
+Bu projede başarıyla gerçekleştirilen önemli başlıklar:
+\begin{enumerate}
+    \item Bearing-only gemi takibi için kapsamlı bir EKF sistemi geliştirildi
+    \item Gauss-Newton optimizasyonu ile etkili başlangıç tahmin algoritması uygulandı
+    \item Gerçek zamanlı dosya işleme ve simülasyon sistemi oluşturuldu
+    \item C dilinde yüksek performanslı matematik kütüphanesi geliştirildi
+    \item MATLAB ile kapsamlı analiz ve görselleştirme araçları hazırlandı
+\end{enumerate}
+
+\subsection{Teknik Katkılar}
+\begin{itemize}
+    \item Doğrusal olmayan tahmin problemine matematiksel yaklaşım
+    \item Gerçek zamanlı sinyal işleme sistem mimarisi
+    \item Çoklu sensör füzyon algoritması
+    \item Sayısal optimizasyon ve filtreleme tekniklerinin uygulaması
+\end{itemize}
+
+\subsection{Gelecek Çalışmalar}
+\begin{itemize}
+    \item Unscented Kalman Filter (UKF) ile performans karşılaştırması
+    \item Çoklu hedef takibi ve veri ilişkilendirme
+    \item Uyarlamalı gürültü tahmini algoritmaları
+    \item Dağıtık sensör ağları için genişletme
+    \item Makine öğrenmesi destekli başlangıç tahmin yöntemleri
+\end{itemize}
+
+\bibliographystyle{IEEEtran}
+\begin{thebibliography}{10}
+
+\bibitem{kalman1960}
+R. E. Kalman, ``A new approach to linear filtering and prediction problems,'' \emph{Journal of Basic Engineering}, vol. 82, no. 1, pp. 35--45, 1960.
+
+\bibitem{julier1997}
+S. J. Julier and J. K. Uhlmann, ``New extension of the Kalman filter to nonlinear systems,'' in \emph{Signal Processing, Sensor Fusion, and Target Recognition VI}, vol. 3068, pp. 182--193, 1997.
+
+\bibitem{aidala1979}
+V. J. Aidala and S. E. Hammel, ``Utilization of modified polar coordinates for bearings-only tracking,'' \emph{IEEE Transactions on Automatic Control}, vol. 28, no. 3, pp. 283--294, 1983.
+
+\bibitem{nardone1984}
+S. C. Nardone, A. G. Lindgren, and K. F. Gong, ``Fundamental properties and performance of conventional bearings-only target motion analysis,'' \emph{IEEE Transactions on Automatic Control}, vol. 29, no. 9, pp. 775--787, 1984.
+
+\bibitem{simon2006}
+D. Simon, \emph{Optimal State Estimation: Kalman, H-infinity, and Nonlinear Approaches}. Wiley, 2006.
+
+\end{thebibliography}
+
+\newpage
+\appendix
+
+\section{Kod Uygulaması}
+
+\subsection{Ana EKF Algoritması}
+\begin{lstlisting}[caption=Genişletilmiş Kalman Filtresi Uygulaması]
+void ekf_predict(kalman_t *kalman, double dt)
+{
+    // Durum tahmini: x = F * x
+    get_F_matrix(dt, kalman);
+    for (int i = 0; i < 4; i++) {
+        double x_new = 0;
+        for (int j = 0; j < 4; j++)
+            x_new += kalman->F[i][j] * kalman->x[j];
+        kalman->x_pred[i] = x_new;
+    }
+    
+    // Kovaryans tahmini: P = F * P * F^T + Q
+    matrix_multiply_4x4(kalman->F, kalman->P, temp_FP);
+    matrix_transpose_4x4(kalman->F, F_transpose);
+    matrix_multiply_4x4(temp_FP, F_transpose, temp_FPFT);
+    matrix_add_4x4(temp_FPFT, kalman->Q, kalman->P);
+}
+\end{lstlisting}
+
+\subsection{Gauss-Newton Optimizasyonu}
+\begin{lstlisting}[caption=Gauss-Newton Başlangıç Tahmini]
+void gauss_newton(kalman_t *kalman, measurement_t *measurements)
+{
+    gauss_newton_t gn;
+    gauss_init(&gn);
+    
+    // Ba\c{s}lang{\i}\c{c} tahmini
+    gn.x = kalman->x[0];
+    gn.y = kalman->x[1];
+    
+    for (int iter = 0; iter < gn.max_iter; iter++) {
+        // Jacobian ve residual hesaplama
+        get_H_matrix(&gn, kalman, measurements);
+        
+        // Normal denklemler: (H^T * H) * delta = H^T * f
+        double HtH[2][2], Htf[2];
+        HtH_and_Htf(HtH, Htf, &gn);
+        get_inv(&gn, HtH);
+        
+        // G\"{u}ncelleme
+        gn.delta_x = gn.inv[0][0] * Htf[0] + gn.inv[0][1] * Htf[1];
+        gn.delta_y = gn.inv[1][0] * Htf[0] + gn.inv[1][1] * Htf[1];
+        
+        gn.x -= gn.delta_x;
+        gn.y -= gn.delta_y;
+        
+        // Yak{\i}nsama kontrol\"{u}
+        if (fabs(gn.delta_x) + fabs(gn.delta_y) < gn.tol)
+            break;
+    }
+    
+    kalman->x[0] = gn.x;
+    kalman->x[1] = gn.y;
+}
+\end{lstlisting}
+
+\end{document}

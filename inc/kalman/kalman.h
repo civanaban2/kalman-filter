@@ -10,7 +10,7 @@
 
 typedef struct kalman_filter {
 	double	x[4];
-	double 	P[4][4];
+	double	P[4][4];
 	double	F[4][4];
 	double	Q[4][4];
 	double	H[1][4];

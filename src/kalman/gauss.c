@@ -2,76 +2,91 @@
 
 void gauss_newton(kalman_t *kalman, measurement_t *measurements)
 {
-	const int max_iter = 10;
-	const double tol = 1e-6;
+	gauss_newton_t gn;
+	double HtH[2][2] = {0};
+	double Htf[2] = {0};
 
-	// Compute initial guess as average of sensor positions
-	double sx_sum = 0.0, sy_sum = 0.0;
+	gauss_init(&gn);
 	for (int i = 0; i < 3; ++i) {
-		sx_sum += kalman->sensor_pos[i][0];
-		sy_sum += kalman->sensor_pos[i][1];
+		gn.sx_sum += kalman->sensor_pos[i][0];
+		gn.sy_sum += kalman->sensor_pos[i][1];
 	}
-	double x = sx_sum / 3.0;
-	double y = sy_sum / 3.0;
+	gn.x = gn.sx_sum / 3.0;
+	gn.y = gn.sy_sum / 3.0;
 
-	for (int iter = 0; iter < max_iter; ++iter)
+	for (int iter = 0; iter < gn.max_iter; ++iter)
 	{
-		double fx[3], H[3][2];
-		for (int i = 0; i < 3; ++i)
-		{
-			double dx = x - kalman->sensor_pos[measurements[i].sensor_id - 1][0];
-			double dy = y - kalman->sensor_pos[measurements[i].sensor_id - 1][1];
-			double r2 = dx * dx + dy * dy;
-			if (r2 < 1e-8) r2 = 1e-8; // avoid division by zero
-
-			double predicted_bearing = atan2(dy, dx);
-			double angle_diff = predicted_bearing - measurements[i].bearing * M_PI / 180.0; // Convert bearing to radians
-
-			// Normalize angle_diff to [-pi, pi]
-			angle_diff = fmod(angle_diff + M_PI, 2 * M_PI);
-			if (angle_diff < 0) angle_diff += 2 * M_PI;
-			angle_diff -= M_PI;
-
-			fx[i] = angle_diff;
-
-			H[i][0] = -dy / r2;
-			H[i][1] = dx / r2;
-		}
-
-		// Compute H^T * H and H^T * fx
-		double HtH[2][2] = {0}, Htf[2] = {0};
-		for (int i = 0; i < 3; ++i)
-		{
-			HtH[0][0] += H[i][0] * H[i][0];
-			HtH[0][1] += H[i][0] * H[i][1];
-			HtH[1][0] += H[i][1] * H[i][0];
-			HtH[1][1] += H[i][1] * H[i][1];
-			Htf[0] += H[i][0] * fx[i];
-			Htf[1] += H[i][1] * fx[i];
-		}
-
-		double det = HtH[0][0] * HtH[1][1] - HtH[0][1] * HtH[1][0];
-		if (fabs(det) < 1e-12)
+		get_H_matrix(&gn, kalman, measurements);
+		HtH_and_Htf(HtH, Htf, &gn);
+		gn.det = HtH[0][0] * HtH[1][1] - HtH[0][1] * HtH[1][0];
+		if (fabs(gn.det) < 1e-12)
 			break;
 
-		double inv[2][2];
-		inv[0][0] = HtH[1][1] / det;
-		inv[0][1] = -HtH[0][1] / det;
-		inv[1][0] = -HtH[1][0] / det;
-		inv[1][1] = HtH[0][0] / det;
+		get_inv(&gn, HtH);
 
-		double delta_x = -(inv[0][0] * Htf[0] + inv[0][1] * Htf[1]);
-		double delta_y = -(inv[1][0] * Htf[0] + inv[1][1] * Htf[1]);
-
-		x += delta_x;
-		y += delta_y;
-
-		if (sqrt(delta_x * delta_x + delta_y * delta_y) < tol)
+		gn.delta_x = -(gn.inv[0][0] * Htf[0] + gn.inv[0][1] * Htf[1]);
+		gn.delta_y = -(gn.inv[1][0] * Htf[0] + gn.inv[1][1] * Htf[1]);
+		gn.x += gn.delta_x;
+		gn.y += gn.delta_y;
+		if (sqrt(gn.delta_x * gn.delta_x + gn.delta_y * gn.delta_y) < gn.tol)
 			break;
 	}
 
-	kalman->x[0] = x;
-	kalman->x[1] = y;
+	kalman->x[0] = gn.x;
+	kalman->x[1] = gn.y;
 	kalman->x[2] = 0.0;
 	kalman->x[3] = 0.0;
+}
+
+void	gauss_init(gauss_newton_t *gn)
+{
+	gn->max_iter = 100;
+	gn->tol = 1e-6;
+	gn->x = 0.0;
+	gn->y = 0.0;
+	gn->sx_sum = 0.0;
+	gn->sy_sum = 0.0;
+	gn->dx = 0.0;
+	gn->dy = 0.0;
+	gn->r2 = 0.0;
+}
+
+void	get_H_matrix(gauss_newton_t *gn, kalman_t *kalman, measurement_t *measurements)
+{
+	for (int i = 0; i < 3; ++i)
+	{
+		gn->dx = gn->x - kalman->sensor_pos[measurements[i].sensor_id - 1][0];
+		gn->dy = gn->y - kalman->sensor_pos[measurements[i].sensor_id - 1][1];
+		gn->r2 = gn->dx * gn->dx + gn->dy * gn->dy;
+		gn->predicted_bearing = atan2(gn->dy, gn->dx);
+		gn->angle_diff = gn->predicted_bearing - measurements[i].bearing * M_PI / 180.0;
+		gn->angle_diff = fmod(gn->angle_diff + M_PI, 2 * M_PI);
+		if (gn->angle_diff < 0)
+			gn->angle_diff += 2 * M_PI;
+		gn->angle_diff -= M_PI;
+		gn->fx[i] = gn->angle_diff;
+		gn->H[i][0] = -gn->dy / gn->r2;
+		gn->H[i][1] = gn->dx / gn->r2;
+	}
+}
+
+void	HtH_and_Htf(double HtH[2][2], double Htf[2], gauss_newton_t *gn)
+{
+	for (int i = 0; i < 3; ++i)
+	{
+		HtH[0][0] += gn->H[i][0] * gn->H[i][0];
+		HtH[0][1] += gn->H[i][0] * gn->H[i][1];
+		HtH[1][0] += gn->H[i][1] * gn->H[i][0];
+		HtH[1][1] += gn->H[i][1] * gn->H[i][1];
+		Htf[0] += gn->H[i][0] * gn->fx[i];
+		Htf[1] += gn->H[i][1] * gn->fx[i];
+	}
+}
+
+void	get_inv(gauss_newton_t *gn, double HtH[2][2])
+{
+	gn->inv[0][0] = HtH[1][1] / gn->det;
+	gn->inv[0][1] = -HtH[0][1] / gn->det;
+	gn->inv[1][0] = -HtH[1][0] / gn->det;
+	gn->inv[1][1] = HtH[0][0] / gn->det;
 }

@@ -27,6 +27,23 @@ typedef struct measurement {
 	double	bearing;
 }	measurement_t;
 
+typedef struct gauss_newton {
+	int		max_iter;
+	double	tol;
+	double	**z;
+	double	**H;
+	double	**H_transpose;
+	double	sx_sum;
+	double	sy_sum;
+	double	dx;
+	double	dy;
+	double	r2;
+	double	**HtH_inv;
+	double	H_det;
+	double	predicted_bearing;
+	double	angle_diff;
+}	gauss_newton_t;
+
 // Main kalman functions
 void	kalman_filter(kalman_t *kalman, const char *data);
 void	kalman_initialization(kalman_t *kalman);

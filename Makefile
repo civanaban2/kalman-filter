@@ -1,6 +1,6 @@
 # Compiler and flags
 CC = gcc
-CFLAGS = -Wall -Wextra -Werror -g -O2
+CFLAGS = -Wall -Wextra -Werror -g
 
 # Directories
 BIN_DIR = bin

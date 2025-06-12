@@ -30,7 +30,7 @@ void ekf_predict(kalman_t *kalman, measurement_t new_data, measurement_t last_da
         for (int j = 0; j < 4; j++)
             x[i] += kalman->F[i][j] * kalman->x[j];
     }
-
+	printf("%f %f\n", x[0], x[1]);
     // FP = F * P
     for (int i = 0; i < 4; i++)
     {

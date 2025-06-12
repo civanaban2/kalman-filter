@@ -11,7 +11,6 @@ Bu proje, bearing ölçümlerini kullanarak nesne takibi yapan gerçek zamanlı 
 - [Algoritma Detayları](#algoritma-detayları)
 - [Rapor Oluşturma](#rapor-oluşturma)
 - [Dosya Formatları](#dosya-formatları)
-- [Katkıda Bulunma](#katkıda-bulunma)
 
 ## 🎯 Proje Açıklaması
 
@@ -72,7 +71,6 @@ kalman-filter/
 ## 🛠 Kurulum
 
 ### Gereksinimler
-- **macOS** (Terminal.app desteği için)
 - **GCC** compiler
 - **Make** build sistemi
 - **LaTeX** (raporlar için - opsiyonel)
@@ -126,7 +124,6 @@ make start
 | `make simulation` | Sadece simülasyon modülünü derler |
 | `make kalman` | Sadece kalman filter modülünü derler |
 | `make analysis` | Sadece analiz modülünü derler |
-| `make parallel` | `make start` ile aynı (alias) |
 
 ### Rapor Komutları
 | Komut | Açıklama |
@@ -150,7 +147,6 @@ make help  # Tüm komutları listeler
 - ✅ **Renkli çıktı** - Kolay takip için
 - ✅ **Dependency tracking** - Header değişikliklerini takip eder
 - ✅ **Temiz organizasyon** - Object dosyaları ayrı klasörde
-- ✅ **Cross-platform** - macOS Terminal desteği
 
 ## 🧮 Algoritma Detayları
 
@@ -250,115 +246,19 @@ pdflatex main.tex
 
 ### data.txt Format
 ```
-timestamp,sensor_id,bearing
-1623456789.123,0,0.785
-1623456789.223,1,1.047
-1623456789.323,2,0.524
+timestamp sensor_id bearing
+1.04 1 62.5321
+2.53 2 120.7263
+4.25 3 -150.1358
 ```
 
 ### Parser Detayları
 ```c
 // Veri parsing örneği
-parse_data("1623456789.123,0,0.785", &measurement);
-// measurement.timestamp = 1623456789.123
-// measurement.sensor_id = 0
-// measurement.bearing = 0.785 (radyan)
+parse_data("1.04 1 62.5321", &measurement);
+// measurement.timestamp = 1.04
+// measurement.sensor_id = 1
+// measurement.bearing = 62.5321 (derece)
 ```
-
-## 🔍 Debugging ve Test
-
-### Debug Modunda Derleme
-```bash
-# Debug flags zaten Makefile'da var
-CC = gcc
-CFLAGS = -Wall -Wextra -Werror -g -O2
-```
-
-### Hata Kontrolü
-```bash
-# Syntax hataları için
-make 2>&1 | grep error
-
-# Runtime hataları için
-valgrind ./bin/kalman  # Linux'ta
-leaks -atExit -- ./bin/kalman  # macOS'ta
-```
-
-### Test Verisi Oluşturma
-```bash
-# Test simülasyonu çalıştır
-./bin/simulation --test-mode
-
-# Belirli trajectory ile test
-./bin/simulation --circle-trajectory
-```
-
-## 🚀 Performans Optimizasyonu
-
-### Compiler Optimizasyonları
-- `-O2`: Orta seviye optimizasyon
-- `-Wall -Wextra -Werror`: Tüm uyarılar hata olarak
-- `-g`: Debug bilgileri
-
-### Memory Yönetimi
-- **Static arrays** kullanılıyor (heap allocation yok)
-- **Stack-based** matris operasyonları
-- **Minimal dynamic allocation**
-
-### Gerçek Zamanlı Performans
-- **File polling** 100ms aralıklarla
-- **Efficient parsing** fixed-format strings
-- **In-place matrix operations** mümkün olduğunda
-
-## 🤝 Katkıda Bulunma
-
-### Development Workflow
-1. Fork the repository
-2. Create feature branch: `git checkout -b feature/amazing-feature`
-3. Commit changes: `git commit -m 'Add amazing feature'`
-4. Push branch: `git push origin feature/amazing-feature`
-5. Open Pull Request
-
-### Code Style
-- **C99 standard** kullanın
-- **Tab indentation** (4 spaces)
-- **Function documentation** ekleyin
-- **Error handling** implementasyonu
-
-### Test Checklist
-- [ ] Compilation warnings yok
-- [ ] Memory leaks yok
-- [ ] All modules tested
-- [ ] Documentation updated
-
-## 📚 Referanslar
-
-1. Kalman, R. E. (1960). "A New Approach to Linear Filtering and Prediction Problems"
-2. Julier, S. J. & Uhlmann, J. K. (1997). "New extension of the Kalman filter to nonlinear systems"
-3. Bar-Shalom, Y., Li, X. R., & Kirubarajan, T. (2001). "Estimation with Applications to Tracking and Navigation"
-
-## 📄 Lisans
-
-Bu proje MIT lisansı altında lisanslanmıştır. Detaylar için [LICENSE](LICENSE) dosyasına bakınız.
-
-## 📞 İletişim
-
-**Proje Sahibi:** urmet  
-**Email:** urmet@student.42.fr  
-**GitHub:** [kalman-filter](https://github.com/urmet/kalman-filter)
 
 ---
-
-## 🔄 Güncelleme Notları
-
-### v1.0.0 (11 Haziran 2025)
-- ✅ İlk stable release
-- ✅ EKF implementasyonu tamamlandı
-- ✅ Gaussian-Newton optimizasyonu
-- ✅ Real-time file processing
-- ✅ Comprehensive Makefile
-- ✅ LaTeX documentation support
-
----
-
-**⭐ Bu projeyi beğendiyseniz yıldız verin!**

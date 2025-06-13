@@ -1,4 +1,4 @@
-data = readmatrix('log.txt');
+data = readmatrix('../../log.txt');
 
 t_log = data(:,1);
 x_hat = data(:,2);

@@ -16,8 +16,8 @@ legend([h_ref, h_meas]);
 
 last_n = 0;
 while true
-    if isfile('log.txt')
-        data = readmatrix('log.txt');
+    if isfile('../../log.txt')
+        data = readmatrix('../../log.txt');
 
         if size(data,2) >= 3 && size(data,1) > last_n
             new_rows = data(last_n+1:end, :);

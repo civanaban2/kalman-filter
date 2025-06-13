@@ -95,26 +95,15 @@ Hedefin durumu 4 boyutlu bir vektör ile tanımlanır:
 \mathbf{x}(t) = [x(t), y(t), v_x(t), v_y(t)]^T
 \end{equation}
 
-\subsubsection{Sürekli Zaman Dinamik Modeli}
+\subsubsection{Ayrık Zaman Dinamik Modeli}
 Hedefin hareket dinamiği sabit hız modeli ile tanımlanır:
 \begin{equation}
-\frac{d\mathbf{x}(t)}{dt} = \mathbf{A}\mathbf{x}(t) + \mathbf{w}(t)
+\mathbf{x}_{k+1} = \mathbf{F}_k \mathbf{x}_k + \mathbf{w}_k
 \end{equation}
 
-burada sistem matrisi:
+burada durum geçiş matrisi:
 \begin{equation}
-\mathbf{A} = \begin{bmatrix}
-0 & 0 & 1 & 0 \\
-0 & 0 & 0 & 1 \\
-0 & 0 & 0 & 0 \\
-0 & 0 & 0 & 0
-\end{bmatrix}
-\end{equation}
-
-\subsubsection{Ayrık Zaman Durum Geçiş Matrisi}
-Örnekleme periyodu $\Delta t$ için durum geçiş matrisi:
-\begin{equation}
-\mathbf{F} = e^{\mathbf{A}\Delta t} = \begin{bmatrix}
+\mathbf{F} = \begin{bmatrix}
 1 & 0 & \Delta t & 0 \\
 0 & 1 & 0 & \Delta t \\
 0 & 0 & 1 & 0 \\

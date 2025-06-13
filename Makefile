@@ -19,7 +19,6 @@ NC = \033[0m # No Color
 # Program names
 SIMULATION = simulation
 KALMAN = kalman
-ANALYSIS = analysis
 
 # Source files
 SIM_SRCDIR = $(SRC_DIR)/simulation
@@ -29,18 +28,13 @@ SIM_OBJ = $(addprefix $(OBJ_DIR)/simulation/, $(SIM_SOURCES:.c=.o))
 SIM_INC = -I$(INC_DIR)/simulation
 
 KALMAN_SRCDIR = $(SRC_DIR)/kalman
-KALMAN_SOURCES = main.c kalman.c initialization.c parser.c gauss.c ekf.c matrix_operations.c
+KALMAN_SOURCES = main.c kalman.c initialization.c parser.c gauss.c ekf.c
 KALMAN_SRC = $(addprefix $(KALMAN_SRCDIR)/, $(KALMAN_SOURCES))
 KALMAN_OBJ = $(addprefix $(OBJ_DIR)/kalman/, $(KALMAN_SOURCES:.c=.o))
 KALMAN_INC = -I$(INC_DIR)/kalman
 
-ANALYSIS_SRCDIR = $(SRC_DIR)/analysis
-ANALYSIS_SOURCES = analysis.c
-ANALYSIS_SRC = $(addprefix $(ANALYSIS_SRCDIR)/, $(ANALYSIS_SOURCES))
-ANALYSIS_OBJ = $(addprefix $(OBJ_DIR)/analysis/, $(ANALYSIS_SOURCES:.c=.o))
-
 # Default target
-all: $(BIN_DIR)/$(SIMULATION) $(BIN_DIR)/$(KALMAN) $(BIN_DIR)/$(ANALYSIS)
+all: $(BIN_DIR)/$(SIMULATION) $(BIN_DIR)/$(KALMAN)
 	@echo "$(GREEN)✓ All programs compiled successfully!$(NC)"
 
 # Individual targets
@@ -54,11 +48,6 @@ $(BIN_DIR)/$(KALMAN): $(KALMAN_OBJ) | $(BIN_DIR)
 	@$(CC) $(CFLAGS) -o $(BIN_DIR)/$(KALMAN) $(KALMAN_OBJ) -lm
 	@echo "$(GREEN)✓ $(KALMAN) compiled successfully!$(NC)"
 
-$(BIN_DIR)/$(ANALYSIS): $(ANALYSIS_OBJ) | $(BIN_DIR)
-	@echo "$(BLUE)Linking $(ANALYSIS)...$(NC)"
-	@$(CC) $(CFLAGS) -o $(BIN_DIR)/$(ANALYSIS) $(ANALYSIS_OBJ) -lm
-	@echo "$(GREEN)✓ $(ANALYSIS) compiled successfully!$(NC)"
-
 # Object file compilation rules with dependency generation
 $(OBJ_DIR)/simulation/%.o: $(SIM_SRCDIR)/%.c | $(OBJ_DIR)/simulation
 	@echo "$(YELLOW)Compiling $<...$(NC)"
@@ -67,10 +56,6 @@ $(OBJ_DIR)/simulation/%.o: $(SIM_SRCDIR)/%.c | $(OBJ_DIR)/simulation
 $(OBJ_DIR)/kalman/%.o: $(KALMAN_SRCDIR)/%.c | $(OBJ_DIR)/kalman
 	@echo "$(YELLOW)Compiling $<...$(NC)"
 	@$(CC) $(CFLAGS) $(KALMAN_INC) -c $< -o $@
-
-$(OBJ_DIR)/analysis/%.o: $(ANALYSIS_SRCDIR)/%.c | $(OBJ_DIR)/analysis
-	@echo "$(YELLOW)Compiling $<...$(NC)"
-	@$(CC) $(CFLAGS) -c $< -o $@
 
 # Directory creation
 $(BIN_DIR):
@@ -82,15 +67,10 @@ $(OBJ_DIR)/simulation:
 $(OBJ_DIR)/kalman:
 	@mkdir -p $(OBJ_DIR)/kalman
 
-$(OBJ_DIR)/analysis:
-	@mkdir -p $(OBJ_DIR)/analysis
-
 # Individual program targets (aliases)
 simulation: $(BIN_DIR)/$(SIMULATION)
 
 kalman: $(BIN_DIR)/$(KALMAN)
-
-analysis: $(BIN_DIR)/$(ANALYSIS)
 
 # Report generation from LaTeX files
 report:
@@ -132,15 +112,16 @@ start: $(BIN_DIR)/$(SIMULATION) $(BIN_DIR)/$(KALMAN)
 
 # Plotting target
 plot:
-	/Applications/MATLAB_R2022b.app/bin/matlab -nosplash -nodesktop -r "plot_master"
+	/Applications/MATLAB_R2025a.app/bin/matlab -nosplash -nodesktop -r "cd('src/analysis'); plot_master"
 plot_rmse:
-	/Applications/MATLAB_R2022b.app/bin/matlab -nosplash -nodesktop -r "plot_rmse"
+	/Applications/MATLAB_R2025a.app/bin/matlab -nosplash -nodesktop -r "cd('src/analysis'); plot_rmse"
 
 # Cleaning rules
 clean:
 	@rm -rf $(OBJ_DIR)
 	@rm -f $(REPORT_DIR)/*.aux $(REPORT_DIR)/*.log $(REPORT_DIR)/*.out $(REPORT_DIR)/*.toc $(REPORT_DIR)/*.bbl $(REPORT_DIR)/*.blg $(REPORT_DIR)/*.fls $(REPORT_DIR)/*.fdb_latexmk $(REPORT_DIR)/*.synctex.gz 2>/dev/null || true
-	@echo "$(GREEN)✓ Object files cleaned!$(NC)"
+	@rm -f data.txt log.txt 2>/dev/null || true
+	@echo "$(GREEN)✓ Object files and data files cleaned!$(NC)"
 
 fclean: clean
 	@rm -rf $(BIN_DIR)
@@ -155,13 +136,14 @@ help:
 	@echo "  $(GREEN)make$(NC)            - Compile all programs"
 	@echo "  $(GREEN)make simulation$(NC) - Compile only simulation"
 	@echo "  $(GREEN)make kalman$(NC)     - Compile only kalman filter"
-	@echo "  $(GREEN)make analysis$(NC)   - Compile only analysis"
 	@echo "  $(GREEN)make report$(NC)     - Generate mathematical report PDF (with bibliography)"
 	@echo "  $(GREEN)make start$(NC)      - Run simulation and kalman in separate terminals"
+	@echo "  $(GREEN)make plot$(NC)       - Generate trajectory plots with MATLAB"
+	@echo "  $(GREEN)make plot_rmse$(NC)  - Generate RMSE analysis plots with MATLAB"
 	@echo "  $(GREEN)make clean$(NC)      - Remove object files"
 	@echo "  $(GREEN)make fclean$(NC)     - Remove object files and binaries"
 	@echo "  $(GREEN)make re$(NC)         - Clean and rebuild all"
 	@echo "  $(GREEN)make help$(NC)       - Show this help message"
 
 # Phony targets
-.PHONY: all simulation kalman analysis report start clean fclean re help
+.PHONY: all simulation kalman report start plot plot_rmse clean fclean re help

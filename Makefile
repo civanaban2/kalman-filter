@@ -140,7 +140,7 @@ help:
 	@echo "  $(GREEN)make start$(NC)      - Run simulation and kalman in separate terminals"
 	@echo "  $(GREEN)make plot$(NC)       - Generate trajectory plots with MATLAB"
 	@echo "  $(GREEN)make plot_rmse$(NC)  - Generate RMSE analysis plots with MATLAB"
-	@echo "  $(GREEN)make clean$(NC)      - Remove object files"
+	@echo "  $(GREEN)make clean$(NC)      - Remove object files, data.txt and log.txt"
 	@echo "  $(GREEN)make fclean$(NC)     - Remove object files and binaries"
 	@echo "  $(GREEN)make re$(NC)         - Clean and rebuild all"
 	@echo "  $(GREEN)make help$(NC)       - Show this help message"

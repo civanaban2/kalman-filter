@@ -130,6 +130,12 @@ start: $(BIN_DIR)/$(SIMULATION) $(BIN_DIR)/$(KALMAN)
 	@osascript -e 'tell application "Terminal" to do script "cd $(shell pwd) && ./$(BIN_DIR)/$(KALMAN)"'
 	@echo "$(GREEN)✓ Both programs started in separate terminals!$(NC)"
 
+# Plotting target
+plot:
+	/Applications/MATLAB_R2022b.app/bin/matlab -nosplash -nodesktop -r "plot_master"
+plot_rmse:
+	/Applications/MATLAB_R2022b.app/bin/matlab -nosplash -nodesktop -r "plot_rmse"
+
 # Cleaning rules
 clean:
 	@rm -rf $(OBJ_DIR)

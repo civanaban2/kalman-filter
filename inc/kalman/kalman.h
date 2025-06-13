@@ -47,7 +47,7 @@ typedef struct gauss_newton {
 	double	delta_y;
 }	gauss_newton_t;
 
-void	kalman_filter(kalman_t *kalman, const char *data);
+void	kalman_filter(kalman_t *kalman, const char *data, int fd);
 void	kalman_initialization(kalman_t *kalman);
 void	parse_data(const char *data, measurement_t *measurement);
 void	get_P_matrix(double P[4][4]);
@@ -62,6 +62,7 @@ void	get_inv(gauss_newton_t *gn, double HtH[2][2]);
 void	ekf(kalman_t *kalman, measurement_t new_data, measurement_t last_data);
 void	ekf_predict(kalman_t *kalman, measurement_t new_data, measurement_t last_data);
 void	ekf_update(kalman_t *kalman, measurement_t new_data);
-void	logger_write(kalman_t *kalman);
+void	get_H_kalman(kalman_t *kalman, measurement_t *measurement);
+void	get_R_matrix(kalman_t *kalman, measurement_t *measurement);
 
 #endif

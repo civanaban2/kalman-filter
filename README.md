@@ -1,264 +1,206 @@
-# Kalman Filter Project
+# Bearing-Only Target Tracking
 
-Bu proje, bearing ölçümlerini kullanarak nesne takibi yapan gerçek zamanlı bir Kalman Filter implementasyonudur. Proje, simülasyon, filtreleme ve analiz olmak üzere üç ana bileşenden oluşmaktadır.
+A C implementation of a two-dimensional target-tracking workflow using bearing
+measurements from three fixed sensors. Gauss-Newton initialization estimates the
+starting position, then an Extended Kalman Filter (EKF) tracks position and
+velocity. MATLAB scripts visualize logged estimates and position error.
 
-## 📋 İçindekiler
-- [Proje Açıklaması](#proje-açıklaması)
-- [Proje Yapısı](#proje-yapısı)
-- [Kurulum](#kurulum)
-- [Kullanım](#kullanım)
-- [Makefile Rehberi](#makefile-rehberi)
-- [Algoritma Detayları](#algoritma-detayları)
-- [Rapor Oluşturma](#rapor-oluşturma)
-- [Dosya Formatları](#dosya-formatları)
+Developed for the **MTH 407 - Fundamentals of Automatic Target Tracking** course
+by **Civan Rumet Arı** and **Yaren Sakarya**.
 
-## 🎯 Proje Açıklaması
+## Components
 
-### Ana Amaç
-Bu proje, 3 adet bearing sensörü kullanarak hareket eden bir nesnenin konumunu gerçek zamanlı olarak takip etmeyi amaçlar. Extended Kalman Filter (EKF) algoritması kullanılarak:
-
-- **Konum tahmini** (x, y koordinatları)
-- **Hız tahmini** (vx, vy bileşenleri)  
-- **Gerçek zamanlı filtreleme**
-- **Gaussian-Newton ile başlangıç konumu belirleme**
-
-### Teknik Özellikler
-- ✅ **3 Bearing Sensörü** ile triangulation
-- ✅ **Extended Kalman Filter** (EKF) implementasyonu
-- ✅ **Gaussian-Newton** optimizasyonu ile başlangıç konumu
-- ✅ **Gerçek zamanlı veri işleme** (dosya takibi)
-- ✅ **Matrix operasyonları** (4x4, 3x3, 2x2 matrisler)
-- ✅ **Modüler kod yapısı** (simulation, kalman, analysis)
-
-## 📁 Proje Yapısı
-
-```
-kalman-filter/
-├── 📄 README.md              # Bu dosya
-├── 📄 LICENSE                # Lisans bilgileri
-├── 📄 Makefile               # Derleme ve çalıştırma komutları
-├── 📁 inc/                   # Header dosyaları
-│   ├── 📁 kalman/
-│   │   ├── kalman.h         # Kalman filter tanımları
-│   │   └── matrix.h         # Matrix operasyonları
-│   └── 📁 simulation/
-│       └── simulation.h     # Simülasyon tanımları
-├── 📁 src/                   # Kaynak kodlar
-│   ├── 📁 kalman/           # 🎯 Kalman Filter Modülü
-│   │   ├── main.c           # Ana program (dosya takibi)
-│   │   ├── kalman.c         # Kalman filter ana logic
-│   │   ├── initialization.c # Matrix ve sensör başlatma
-│   │   ├── parser.c         # Veri parsing
-│   │   ├── gauss.c          # Gaussian-Newton optimizasyonu
-│   │   ├── ekf.c            # Extended Kalman Filter
-│   │   └── matrix_operations.c # Matrix işlemleri
-│   ├── 📁 simulation/       # 🎮 Simülasyon Modülü
-│   │   ├── main.c           # Simülasyon ana program
-│   │   ├── initialization.c # Başlatma parametreleri
-│   │   ├── record.c         # Veri kaydetme
-│   │   └── write.c          # Dosya yazma işlemleri
-│   └── 📁 analysis/         # 📊 Analiz Modülü
-│       └── analysis.c       # Sonuç analizi ve karşılaştırma
-├── 📁 report/               # 📝 LaTeX Raporları
-│   ├── main.tex            # Ana rapor dosyası
-│   ├── algorithm.tex       # Algoritma açıklamaları
-│   ├── results.tex         # Sonuçlar ve grafikler
-│   └── figures/            # Görsel dosyalar
-├── 📁 bin/                  # 🚀 Derlenmiş executables (otomatik oluşur)
-└── 📁 .obj/                 # 🔧 Object dosyaları (otomatik oluşur)
+```text
+simulation -> data.txt -> kalman -> log.txt -> MATLAB plots
 ```
 
-## 🛠 Kurulum
+- **Simulation:** generate target motion and noisy sensor bearings, then write
+  measurements with timestamp-based delays.
+- **Filter:** follow newly appended measurements, initialize from the first
+  three records, and estimate the state `[x, y, vx, vy]`.
+- **Analysis:** display the estimated trajectory and position error against the
+  configured ground-truth motion.
+- **Report:** a Turkish LaTeX course report and example figures in `report/`.
 
-### Gereksinimler
-- **GCC** compiler
-- **Make** build sistemi
-- **LaTeX** (raporlar için - opsiyonel)
-  ```bash
-  brew install --cask mactex  # macOS için
-  ```
+This is an educational, file-based tracking demo, not a hard real-time system
+or an integration with physical radar hardware.
 
-### Derleme
-```bash
-# Tüm projeyi derle
+## Build
+
+Requirements: a C compiler, Make, and POSIX file/time functions. macOS and Linux
+are the intended environments. MATLAB and LaTeX are optional and not needed
+to build the two C programs.
+
+```sh
+git clone https://github.com/civanaban2/kalman-filter.git
+cd kalman-filter
 make
-
-# Sadece belirli modülü derle
-make simulation
-make kalman
-make analysis
 ```
 
-## 🚀 Kullanım
+Outputs:
 
-### 1. Hızlı Başlangıç
-```bash
-# Tüm sistemi çalıştır (2 ayrı terminal penceresi açar)
-make start
-```
+- `bin/simulation`
+- `bin/kalman`
 
-### 2. Adım Adım Çalıştırma
-```bash
-# 1. Simülasyonu çalıştır (veri üret)
-./bin/simulation
+Use `make CC=clang` to select Clang, or the default `gcc`. The filter links against `libm`. The current simulation link command does not
+include `-lm`, which may cause unresolved math symbols on Linux. Object files
+are stored in `.obj/`; the current build does not generate header dependencies.
 
-# 2. Kalman filter'ı çalıştır (başka terminal'de)
+## Run the live demonstration
+
+Use two terminals, both in the repository root. Stop any previous runs first.
+
+**Terminal 1:** create an empty measurement file and start the filter:
+
+```sh
+: > data.txt
 ./bin/kalman
-
-# 3. Analiz yap (opsiyonel)
-./bin/analysis
 ```
 
-### 3. Veri Akışı
-1. **Simulation** → `data.txt` dosyasına bearing ölçümleri yazar
-2. **Kalman** → `data.txt` dosyasını gerçek zamanlı takip eder
-3. **Analysis** → Sonuçları karşılaştırır
+**Terminal 2:** start the measurement producer:
 
-## 📖 Makefile Rehberi
-
-### Ana Komutlar
-| Komut | Açıklama |
-|-------|----------|
-| `make` | Tüm projeyi derler |
-| `make start` | Simulation ve Kalman'ı ayrı terminallerde başlatır |
-| `make simulation` | Sadece simülasyon modülünü derler |
-| `make kalman` | Sadece kalman filter modülünü derler |
-| `make analysis` | Sadece analiz modülünü derler |
-
-### Rapor Komutları
-| Komut | Açıklama |
-|-------|----------|
-| `make report` | LaTeX dosyalarından PDF oluşturur |
-
-### Temizlik Komutları
-| Komut | Açıklama |
-|-------|----------|
-| `make clean` | Object dosyalarını siler |
-| `make fclean` | Object dosyları + binary'leri siler |
-| `make re` | Temizlik yapıp yeniden derler |
-
-### Yardım
-```bash
-make help  # Tüm komutları listeler
+```sh
+./bin/simulation
 ```
 
-### Makefile Özellikleri
-- ✅ **Akıllı derleme** - Sadece değişen dosyaları derler
-- ✅ **Renkli çıktı** - Kolay takip için
-- ✅ **Dependency tracking** - Header değişikliklerini takip eder
-- ✅ **Temiz organizasyon** - Object dosyaları ayrı klasörde
+The filter initially seeks to the end of `data.txt`, so it must be running
+before the simulation begins emitting measurements. The producer overwrites
+`data.txt` and waits three seconds before writing its paced stream. The filter
+overwrites `log.txt` at startup.
 
-## 🧮 Algoritma Detayları
+The simulator stops after writing its generated measurements. The filter keeps
+polling and must be stopped with **Ctrl+C**. Back up existing logs before a new
+run if you want to keep them. The filter is not an offline replay command for
+an already populated measurement file.
 
-### 1. Gaussian-Newton Başlatma
-İlk 3 bearing ölçümü kullanılarak başlangıç konumu hesaplanır:
+On macOS, `make start` opens the two programs in Terminal.app through AppleScript.
+It is a platform-specific convenience target; the manual commands above avoid
+that dependency.
 
-```c
-// İlk 3 ölçüm topla
-if (measurement_count < 3) {
-    parse_data(data, &first_three[measurement_count]);
-    measurement_count++;
-    
-    if (measurement_count == 3) {
-        gauss_newton(kalman, first_three);  // Başlangıç konumu hesapla
-    }
-}
+## Simulation settings
+
+The source defines these fixed settings:
+
+| Setting | Value |
+| --- | --- |
+| Sensor positions | `(0, 0)`, `(500, 0)`, `(250, 400)` |
+| Initial target position | `(100, 200)` |
+| Target velocity | `(5, 3)` |
+| Simulation integration step | `0.0001` seconds |
+| Sensor bearing noise standard deviations | 0.5, 1.0, and 1.5 degrees |
+| Simulated measurement drop probability | 10% per generated record |
+| Candidate measurement count | 100 before randomized drops |
+
+The simulator seeds its random generator from the current time. Each run can
+therefore produce different measurements and retained-record counts.
+
+## Filter outline
+
+The first three measurements initialize position through Gauss-Newton
+least-squares iterations with wrapped angular residuals. Initial velocity is
+set to zero. Each subsequent record drives a constant-velocity EKF prediction
+using the timestamp difference, followed by a nonlinear bearing update.
+
+Measurement files store bearings in degrees; the filter uses radians in its
+measurement equation. The current measurement variance is formed directly from
+the sensor-specific degree values, without converting that variance to radians.
+The configured process covariance is `Q = 10 I`;
+initial position variances are 10 and velocity variances are 100.
+
+The current covariance update uses `(I - K H) P`. It does not implement a
+Joseph-form update or explicit covariance stabilization.
+
+## File formats
+
+`data.txt` records contain a timestamp, sensor ID (1 through 3), and bearing in
+degrees. The producer uses a fixed-width representation:
+
+```text
+1.04    1    62.5321
 ```
 
-### 2. Extended Kalman Filter
-4. ölçümden itibaren EKF döngüsü başlar:
+`log.txt` contains five whitespace-separated numeric columns:
 
-**Predict Adımı:**
-- State prediction: `x_k|k-1 = F * x_k-1|k-1`
-- Covariance prediction: `P_k|k-1 = F * P_k-1|k-1 * F^T + Q`
-
-**Update Adımı:**
-- Innovation: `y = z - h(x_k|k-1)`
-- Innovation covariance: `S = H * P_k|k-1 * H^T + R`
-- Kalman gain: `K = P_k|k-1 * H^T * S^-1`
-- State update: `x_k|k = x_k|k-1 + K * y`
-- Covariance update: `P_k|k = (I - K * H) * P_k|k-1`
-
-### 3. State Vector
-```c
-kalman->x[0] = x;      // X pozisyonu
-kalman->x[1] = y;      // Y pozisyonu  
-kalman->x[2] = vx;     // X hızı
-kalman->x[3] = vy;     // Y hızı
+```text
+timestamp x_estimate y_estimate vx_estimate vy_estimate
 ```
 
-### 4. Sensör Konfigürasyonu
-```c
-// 3 Bearing sensörü konumları
-sensors[0] = {0.0, 0.0};      // Sensör 1: Orijin
-sensors[1] = {500.0, 0.0};    // Sensör 2: X ekseni
-sensors[2] = {250.0, 400.0};  // Sensör 3: Üçgen oluşturuyor
+That line describes the columns; the actual log contains numeric rows without
+a header. The filter prints headings separately to the terminal.
+
+## MATLAB analysis
+
+After generating a nonempty `log.txt`, open MATLAB and run:
+
+```matlab
+cd src/analysis
+plot_master
 ```
 
-### 5. Noise Modeli
-```c
-// Process noise (Q matrix)
-Q[0][0] = 0.1;  Q[1][1] = 0.1;   // Pozisyon noise
-Q[2][2] = 1.0;  Q[3][3] = 1.0;   // Hız noise
+`plot_master` repeatedly reads new estimates and displays them alongside
+`x = 100 + 5*t`, `y = 200 + 3*t`. It runs until interrupted.
 
-// Measurement noise (R matrix)
-R[0][0] = 0.5 * (π/180)²;   // Sensör 1: 0.5 derece
-R[1][1] = 1.0 * (π/180)²;   // Sensör 2: 1.0 derece  
-R[2][2] = 1.5 * (π/180)²;   // Sensör 3: 1.5 derece
-```
+For the position-error chart, run `plot_rmse` from the same directory in a
+separate session or after stopping the live plot. Despite its historical name,
+that script plots the **instantaneous Euclidean position error**, not an RMS
+aggregate across repeated runs.
 
-## 📝 Rapor Oluşturma
+`make plot` and `make plot_rmse` currently use the hard-coded macOS installation
+path `/Applications/MATLAB_R2025a.app/bin/matlab`. Use MATLAB directly if your
+installation differs. Script paths assume the working directory is
+`src/analysis`.
 
-### LaTeX Yapısı
-```
-report/
-├── main.tex           # Ana rapor dosyası
-├── algorithm.tex      # Algoritma açıklamaları
-├── results.tex        # Sonuçlar ve analizler
-├── references.bib     # Kaynaklar
-└── figures/          # Grafikler ve şekiller
-    ├── system_diagram.pdf
-    ├── results_plot.pdf
-    └── error_analysis.pdf
-```
+## Build targets
 
-### PDF Oluşturma
-```bash
-# Tüm LaTeX dosyalarını derle
-make report
+| Command | Action |
+| --- | --- |
+| `make` | Build both C programs |
+| `make simulation` / `make kalman` | Build an individual program |
+| `make start` | Launch the demo through Terminal.app on macOS |
+| `make plot` / `make plot_rmse` | Run analysis using the configured MATLAB path |
+| `make report` | Attempt LaTeX report generation |
+| `make clean` | Remove objects, report auxiliary files, and **data.txt/log.txt** |
+| `make fclean` | Also remove executables and generated report PDFs |
+| `make re` | Clean generated files and rebuild |
+| `make help` | Display target descriptions |
 
-# Manuel derleme (report/ klasöründe)
-cd report
-pdflatex main.tex
-bibtex main
-pdflatex main.tex
-pdflatex main.tex
-```
+There is no `make analysis` target or C analysis executable.
 
-### Rapor İçeriği
-1. **Giriş** - Proje amacı ve kapsamı
-2. **Algoritma** - Kalman Filter ve Gaussian-Newton detayları
-3. **Implementasyon** - Kod yapısı ve tasarım kararları
-4. **Sonuçlar** - Performans analizi ve grafikler
-5. **Sonuç** - Değerlendirme ve gelecek çalışmalar
+## Report
 
-## 📄 Dosya Formatları
+`report/main.tex` contains the course report and references
+`plot_small.png` and `rmse_small.png`. These figures are saved historical
+examples, not results regenerated during this documentation update.
 
-### data.txt Format
-```
-timestamp sensor_id bearing
-1.04 1 62.5321
-2.53 2 120.7263
-4.25 3 -150.1358
-```
+The report requires a TeX installation with its referenced packages and Turkish
+language support. The Makefile's report target suppresses compiler output and
+can finish after warnings; check that `report/main.pdf` was actually generated.
+For visible diagnostics, run `pdflatex -interaction=nonstopmode -halt-on-error
+main.tex` from `report/`.
 
-### Parser Detayları
-```c
-// Veri parsing örneği
-parse_data("1.04 1 62.5321", &measurement);
-// measurement.timestamp = 1.04
-// measurement.sensor_id = 1
-// measurement.bearing = 62.5321 (derece)
-```
+## Scope and limitations
 
----
+The following issues are observations about the existing code; this documentation
+update does not change the implementation.
+
+- The simulator calls `free()` on fixed-size arrays embedded in a stack object,
+  which can cause a crash at shutdown.
+- The Gauss-Newton normal-equation accumulators are not reset between iterations;
+  the EKF covariance multiplication and angular-noise units also need review.
+
+- The file follower assumes small, fixed-width, timestamp-paced records. It
+  is not a robust general-purpose parser: missing files, partial writes,
+  malformed records, or multiple records arriving between polls are not
+  handled reliably.
+- Initialization uses the first three records without enforcing distinct
+  sensors or checking geometric observability.
+- Sensor locations, motion, noise, and filter settings are compiled constants,
+  not command-line options.
+- The simulation's bearing-alignment logic and fixed noise tuning are simplified
+  models; tracking accuracy is not guaranteed across arbitrary scenarios.
+- MATLAB and LaTeX output must be regenerated to evaluate a changed algorithm;
+  saved report images are not a numerical regression test.
+
+## License
+
+MIT. See [LICENSE](LICENSE).
